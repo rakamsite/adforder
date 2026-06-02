@@ -133,3 +133,37 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+.fip_login__card {
+	max-width: 520px;
+}
+
+.fip_login_form {
+	margin: 0;
+}
+
+.fip_login__description,
+.fip_login__timer {
+	color: #50575e;
+	line-height: 1.9;
+	margin: 0 0 1rem;
+}
+
+.fip_login__actions,
+.fip_login__secondary_actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.fip_login__secondary_actions {
+	border-top: 1px solid #f0f0f1;
+	margin-top: 1rem;
+	padding-top: 1rem;
+}
+
+.fip_button[disabled] {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
