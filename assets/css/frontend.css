@@ -25,13 +25,111 @@
 	padding: 0.85rem 1rem;
 }
 
+.fip_notice p {
+	margin: 0 0 0.75rem;
+}
+
+.fip_notice p:last-child,
+.fip_notice ul:last-child {
+	margin-bottom: 0;
+}
+
 .fip_notice--info {
 	background: #eef6ff;
 	border-right: 4px solid #2271b1;
 	color: #1d4f73;
 }
 
+.fip_notice--success {
+	background: #effaf1;
+	border-right: 4px solid #008a20;
+	color: #075b19;
+}
+
+.fip_notice--error {
+	background: #fff1f1;
+	border-right: 4px solid #b32d2e;
+	color: #7a1617;
+}
+
 .fip_template__placeholder {
 	color: #50575e;
 	margin: 0;
+}
+
+.fip_profile_form {
+	margin: 0;
+}
+
+.fip_form_grid {
+	display: grid;
+	gap: 1rem;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fip_form_field {
+	margin: 0;
+}
+
+.fip_form_field label {
+	display: block;
+	font-weight: 700;
+	margin-bottom: 0.35rem;
+}
+
+.fip_form_field input,
+.fip_form_field select {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	box-sizing: border-box;
+	color: #2c3338;
+	min-height: 42px;
+	padding: 0.45rem 0.65rem;
+	width: 100%;
+}
+
+.fip_form_field input[readonly] {
+	background: #f6f7f7;
+	color: #646970;
+}
+
+.fip_required {
+	color: #b32d2e;
+}
+
+.fip_form_actions {
+	margin: 1.25rem 0 0;
+}
+
+.fip_button {
+	align-items: center;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	color: #1d2327;
+	display: inline-flex;
+	font-weight: 700;
+	justify-content: center;
+	line-height: 1.7;
+	padding: 0.55rem 1rem;
+	text-decoration: none;
+}
+
+.fip_button--primary {
+	background: #2271b1;
+	border-color: #2271b1;
+	color: #fff;
+	cursor: pointer;
+}
+
+.fip_button:hover,
+.fip_button:focus {
+	text-decoration: none;
+}
+
+@media (max-width: 700px) {
+	.fip_form_grid {
+		grid-template-columns: 1fr;
+	}
 }

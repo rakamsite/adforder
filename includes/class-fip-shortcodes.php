@@ -66,7 +66,12 @@ class FIP_Shortcodes {
 			return '';
 		}
 
-		$this->enqueue_frontend_assets();
+		$is_profile_shortcode = in_array( $shortcode, array( 'filter_portal_complete_profile', 'filter_portal_edit_profile' ), true );
+		if ( $is_profile_shortcode ) {
+			$this->enqueue_profile_assets();
+		} else {
+			$this->enqueue_frontend_assets();
+		}
 
 		$template = FILTER_INQUIRY_PORTAL_PLUGIN_DIR . 'templates/' . $this->shortcodes[ $shortcode ];
 		if ( ! file_exists( $template ) ) {
@@ -88,5 +93,25 @@ class FIP_Shortcodes {
 		if ( $assets && method_exists( $assets, 'enqueue_frontend_assets' ) ) {
 			$assets->enqueue_frontend_assets();
 		}
+	}
+
+	/**
+	 * Enqueues frontend assets and localized city data for profile forms.
+	 *
+	 * @return void
+	 */
+	private function enqueue_profile_assets() {
+		$this->enqueue_frontend_assets();
+
+		$profile = fip_plugin()->get_module( 'profile' );
+		if ( ! $profile || ! method_exists( $profile, 'get_city_data' ) ) {
+			return;
+		}
+
+		wp_add_inline_script(
+			'fip_frontend',
+			'window.fipProfileCities = ' . wp_json_encode( $profile->get_city_data() ) . ';',
+			'before'
+		);
 	}
 }
