@@ -14,15 +14,12 @@ if ( class_exists( 'FIP_SMSIR_Provider', false ) ) {
 }
 
 /**
- * Handles real sms.ir API requests.
+ * Handles real sms.ir Verify API requests.
  */
 class FIP_SMSIR_Provider {
 
 	const BASE_URL        = 'https://api.sms.ir';
 	const VERIFY_ENDPOINT = '/v1/send/verify';
-	const CREDIT_ENDPOINT = '/v1/credit';
-	const MESSAGE_ENDPOINT = '/v1/send/%d';
-	const PARAMETER_MAX_LENGTH = 25;
 
 	/**
 	 * Provider settings.
@@ -45,12 +42,12 @@ class FIP_SMSIR_Provider {
 	}
 
 	/**
-	 * Checks whether the provider has the minimum settings needed for sms.ir calls.
+	 * Checks whether the provider has the minimum settings needed for Verify sending.
 	 *
 	 * @return bool
 	 */
 	public function is_configured() {
-		return '' !== $this->get_api_key();
+		return ! empty( $this->settings['smsir_api_key'] );
 	}
 
 	/**
@@ -62,7 +59,7 @@ class FIP_SMSIR_Provider {
 	 * @return array<string,mixed>
 	 */
 	public function send_verify( $mobile, $template_id, array $parameters ) {
-		$api_key     = $this->get_api_key();
+		$api_key     = isset( $this->settings['smsir_api_key'] ) ? trim( (string) $this->settings['smsir_api_key'] ) : '';
 		$template_id = absint( $template_id );
 		$mobile      = $this->normalize_mobile_for_provider( $mobile );
 
@@ -78,51 +75,36 @@ class FIP_SMSIR_Provider {
 			return $this->build_response( false, __( 'شماره موبایل پیامک معتبر نیست.', 'filter-inquiry-portal' ), 0, null );
 		}
 
-		$formatted_parameters = $this->format_verify_parameters( $parameters );
-		if ( is_wp_error( $formatted_parameters ) ) {
-			return $this->build_response( false, $formatted_parameters->get_error_message(), 0, null );
-		}
-
 		$body = array(
 			'mobile'     => $mobile,
 			'templateId' => $template_id,
-			'parameters' => $formatted_parameters,
+			'parameters' => $this->format_verify_parameters( $parameters ),
 		);
 
-		return $this->request( 'POST', self::VERIFY_ENDPOINT, $body );
-	}
+		$response = wp_remote_post(
+			self::BASE_URL . self::VERIFY_ENDPOINT,
+			array(
+				'timeout' => 10,
+				'headers' => array(
+					'Content-Type' => 'application/json',
+					'Accept'       => 'application/json, text/plain',
+					'x-api-key'    => $api_key,
+				),
+				'body'    => wp_json_encode( $body ),
+			)
+		);
 
-	/**
-	 * Gets the sms.ir report/delivery status for a message ID.
-	 *
-	 * @param int $message_id sms.ir message ID returned by send/verify.
-	 * @return array<string,mixed>
-	 */
-	public function get_message_status( $message_id ) {
-		$message_id = absint( $message_id );
-
-		if ( '' === $this->get_api_key() ) {
-			return $this->build_response( false, __( 'کلید API پیامک تنظیم نشده است.', 'filter-inquiry-portal' ), 0, null );
+		if ( is_wp_error( $response ) ) {
+			return $this->build_response( false, $response->get_error_message(), 0, null );
 		}
 
-		if ( $message_id <= 0 ) {
-			return $this->build_response( false, __( 'شناسه پیامک معتبر نیست.', 'filter-inquiry-portal' ), 0, null );
-		}
+		$status_code = absint( wp_remote_retrieve_response_code( $response ) );
+		$raw_body    = (string) wp_remote_retrieve_body( $response );
+		$parsed_body = $this->parse_response_body( $raw_body );
+		$message     = $this->extract_response_message( $parsed_body, $status_code );
+		$success     = $this->is_successful_response( $status_code, $parsed_body );
 
-		return $this->request( 'GET', sprintf( self::MESSAGE_ENDPOINT, $message_id ) );
-	}
-
-	/**
-	 * Gets current sms.ir account credit.
-	 *
-	 * @return array<string,mixed>
-	 */
-	public function get_credit() {
-		if ( '' === $this->get_api_key() ) {
-			return $this->build_response( false, __( 'کلید API پیامک تنظیم نشده است.', 'filter-inquiry-portal' ), 0, null );
-		}
-
-		return $this->request( 'GET', self::CREDIT_ENDPOINT );
+		return $this->build_response( $success, $message, $status_code, $parsed_body );
 	}
 
 	/**
@@ -160,53 +142,6 @@ class FIP_SMSIR_Provider {
 	}
 
 	/**
-	 * Executes an authenticated sms.ir API request.
-	 *
-	 * @param string     $method   HTTP method.
-	 * @param string     $endpoint Endpoint path.
-	 * @param array|null $body     Optional JSON body.
-	 * @return array<string,mixed>
-	 */
-	private function request( $method, $endpoint, $body = null ) {
-		$args = array(
-			'timeout' => 15,
-			'headers' => array(
-				'Content-Type' => 'application/json',
-				'Accept'       => 'application/json',
-				'X-API-KEY'    => $this->get_api_key(),
-			),
-			'method'  => strtoupper( $method ),
-		);
-
-		if ( null !== $body ) {
-			$args['body'] = wp_json_encode( $body );
-		}
-
-		$response = wp_remote_request( self::BASE_URL . $endpoint, $args );
-
-		if ( is_wp_error( $response ) ) {
-			return $this->build_response( false, $response->get_error_message(), 0, null );
-		}
-
-		$status_code = absint( wp_remote_retrieve_response_code( $response ) );
-		$raw_body    = (string) wp_remote_retrieve_body( $response );
-		$parsed_body = $this->parse_response_body( $raw_body );
-		$message     = $this->extract_response_message( $parsed_body, $status_code );
-		$success     = $this->is_successful_response( $status_code, $parsed_body );
-
-		return $this->build_response( $success, $message, $status_code, $parsed_body );
-	}
-
-	/**
-	 * Reads the configured sms.ir API key.
-	 *
-	 * @return string
-	 */
-	private function get_api_key() {
-		return isset( $this->settings['smsir_api_key'] ) ? trim( (string) $this->settings['smsir_api_key'] ) : '';
-	}
-
-	/**
 	 * Validates provider mobile format.
 	 *
 	 * @param string $mobile Provider-normalized mobile.
@@ -220,52 +155,27 @@ class FIP_SMSIR_Provider {
 	 * Formats associative parameters for sms.ir Verify.
 	 *
 	 * @param array<string,mixed> $parameters Parameters.
-	 * @return array<int,array{name:string,value:string}>|WP_Error
+	 * @return array<int,array{name:string,value:string}>
 	 */
 	private function format_verify_parameters( array $parameters ) {
 		$formatted = array();
 
 		foreach ( $parameters as $name => $value ) {
 			if ( is_array( $value ) && isset( $value['name'], $value['value'] ) ) {
-				$name  = $value['name'];
-				$value = $value['value'];
-			}
-
-			$name  = $this->normalize_parameter_name( $name );
-			$value = sanitize_text_field( $this->convert_persian_digits( (string) $value ) );
-
-			if ( '' === $name || '' === $value ) {
-				return new WP_Error( 'fip_smsir_empty_parameter', __( 'نام و مقدار پارامترهای قالب پیامک الزامی است.', 'filter-inquiry-portal' ) );
-			}
-
-			if ( function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) > self::PARAMETER_MAX_LENGTH : strlen( $value ) > self::PARAMETER_MAX_LENGTH ) {
-				return new WP_Error( 'fip_smsir_long_parameter', __( 'مقدار هر پارامتر قالب پیامک sms.ir حداکثر می‌تواند ۲۵ کاراکتر باشد.', 'filter-inquiry-portal' ) );
+				$formatted[] = array(
+					'name'  => sanitize_text_field( (string) $value['name'] ),
+					'value' => sanitize_text_field( (string) $value['value'] ),
+				);
+				continue;
 			}
 
 			$formatted[] = array(
-				'name'  => $name,
-				'value' => $value,
+				'name'  => sanitize_text_field( (string) $name ),
+				'value' => sanitize_text_field( (string) $value ),
 			);
 		}
 
-		if ( empty( $formatted ) ) {
-			return new WP_Error( 'fip_smsir_missing_parameters', __( 'برای ارسال Verify حداقل یک پارامتر قالب لازم است.', 'filter-inquiry-portal' ) );
-		}
-
 		return $formatted;
-	}
-
-	/**
-	 * Normalizes sms.ir template parameter names without surrounding # signs.
-	 *
-	 * @param mixed $name Parameter name.
-	 * @return string
-	 */
-	private function normalize_parameter_name( $name ) {
-		$name = trim( sanitize_text_field( (string) $name ) );
-		$name = trim( $name, " \t\n\r\0\x0B#" );
-
-		return $name;
 	}
 
 	/**
@@ -304,7 +214,7 @@ class FIP_SMSIR_Provider {
 			return sanitize_text_field( $response );
 		}
 
-		return 200 === absint( $status_code )
+		return $status_code >= 200 && $status_code < 300
 			? __( 'پیامک با موفقیت ارسال شد.', 'filter-inquiry-portal' )
 			: __( 'ارسال پیامک با خطا مواجه شد.', 'filter-inquiry-portal' );
 	}
@@ -312,24 +222,28 @@ class FIP_SMSIR_Provider {
 	/**
 	 * Determines whether sms.ir response should be considered successful.
 	 *
-	 * sms.ir documents a unified response model where HTTP 200 plus body status=1
-	 * is the only successful API result. Other positive status values such as 10,
-	 * 16, 113 and 114 are business/API errors and must not pass as success.
-	 *
 	 * @param int   $status_code HTTP status code.
 	 * @param mixed $response    Parsed or raw response.
 	 * @return bool
 	 */
 	private function is_successful_response( $status_code, $response ) {
-		if ( 200 !== absint( $status_code ) ) {
+		if ( $status_code < 200 || $status_code >= 300 ) {
 			return false;
 		}
 
 		if ( is_array( $response ) && array_key_exists( 'status', $response ) ) {
-			return 1 === absint( $response['status'] );
+			$status = $response['status'];
+
+			if ( is_bool( $status ) ) {
+				return $status;
+			}
+
+			if ( is_numeric( $status ) ) {
+				return (int) $status > 0;
+			}
 		}
 
-		return false;
+		return true;
 	}
 
 	/**
@@ -342,38 +256,12 @@ class FIP_SMSIR_Provider {
 	 * @return array<string,mixed>
 	 */
 	private function build_response( $success, $message, $status_code, $response ) {
-		$result = array(
-			'success'         => (bool) $success,
-			'message'         => sanitize_text_field( (string) $message ),
-			'status_code'     => absint( $status_code ),
-			'provider_status' => null,
-			'data'            => null,
-			'message_id'      => null,
-			'cost'            => null,
-			'response'        => $response,
+		return array(
+			'success'     => (bool) $success,
+			'message'     => sanitize_text_field( (string) $message ),
+			'status_code' => absint( $status_code ),
+			'response'    => $response,
 		);
-
-		if ( is_array( $response ) ) {
-			if ( array_key_exists( 'status', $response ) ) {
-				$result['provider_status'] = absint( $response['status'] );
-			}
-
-			if ( array_key_exists( 'data', $response ) ) {
-				$result['data'] = $response['data'];
-			}
-
-			if ( isset( $response['data'] ) && is_array( $response['data'] ) ) {
-				if ( isset( $response['data']['messageId'] ) ) {
-					$result['message_id'] = absint( $response['data']['messageId'] );
-				}
-
-				if ( isset( $response['data']['cost'] ) && is_numeric( $response['data']['cost'] ) ) {
-					$result['cost'] = (float) $response['data']['cost'];
-				}
-			}
-		}
-
-		return $result;
 	}
 
 	/**
