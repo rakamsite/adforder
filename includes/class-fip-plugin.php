@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Plugin', false ) ) {
+	return;
+}
+
 /**
  * Main singleton plugin class.
  */
@@ -86,7 +90,7 @@ final class FIP_Plugin {
 		);
 
 		foreach ( $files as $file ) {
-			require_once FIP_PLUGIN_DIR . 'includes/' . $file;
+			require_once FILTER_INQUIRY_PORTAL_PLUGIN_DIR . 'includes/' . $file;
 		}
 	}
 
@@ -127,7 +131,7 @@ final class FIP_Plugin {
 	 * @return void
 	 */
 	public static function activate() {
-		update_option( 'fip_version', FIP_VERSION, false );
+		update_option( 'fip_version', FILTER_INQUIRY_PORTAL_VERSION, false );
 
 		// Phase 0 does not register rewrite rules, so no rewrite flush is needed.
 	}

@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Product_Search', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for WooCommerce product search integration.
  */

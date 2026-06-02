@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_OTP', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for OTP generation and verification.
  */

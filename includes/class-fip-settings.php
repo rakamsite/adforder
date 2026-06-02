@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Settings', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for plugin settings screens and options.
  */

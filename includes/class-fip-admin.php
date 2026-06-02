@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Admin', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for admin request management pages.
  */

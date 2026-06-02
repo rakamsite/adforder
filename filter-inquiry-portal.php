@@ -20,24 +20,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'FIP_VERSION', '0.1.0' );
-define( 'FIP_PLUGIN_FILE', __FILE__ );
-define( 'FIP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'FIP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'FIP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+if ( defined( 'FILTER_INQUIRY_PORTAL_PLUGIN_FILE' ) || class_exists( 'FIP_Plugin', false ) || function_exists( 'fip_plugin' ) ) {
+	return;
+}
 
-require_once FIP_PLUGIN_DIR . 'includes/class-fip-plugin.php';
+define( 'FILTER_INQUIRY_PORTAL_VERSION', '0.1.0' );
+define( 'FILTER_INQUIRY_PORTAL_PLUGIN_FILE', __FILE__ );
+define( 'FILTER_INQUIRY_PORTAL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'FILTER_INQUIRY_PORTAL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'FILTER_INQUIRY_PORTAL_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
-register_activation_hook( FIP_PLUGIN_FILE, array( 'FIP_Plugin', 'activate' ) );
-register_deactivation_hook( FIP_PLUGIN_FILE, array( 'FIP_Plugin', 'deactivate' ) );
+if ( ! defined( 'FIP_VERSION' ) ) {
+	define( 'FIP_VERSION', FILTER_INQUIRY_PORTAL_VERSION );
+}
 
-/**
- * Returns the main plugin instance.
- *
- * @return FIP_Plugin
- */
-function fip_plugin() {
-	return FIP_Plugin::instance();
+if ( ! defined( 'FIP_PLUGIN_FILE' ) ) {
+	define( 'FIP_PLUGIN_FILE', FILTER_INQUIRY_PORTAL_PLUGIN_FILE );
+}
+
+if ( ! defined( 'FIP_PLUGIN_DIR' ) ) {
+	define( 'FIP_PLUGIN_DIR', FILTER_INQUIRY_PORTAL_PLUGIN_DIR );
+}
+
+if ( ! defined( 'FIP_PLUGIN_URL' ) ) {
+	define( 'FIP_PLUGIN_URL', FILTER_INQUIRY_PORTAL_PLUGIN_URL );
+}
+
+if ( ! defined( 'FIP_PLUGIN_BASENAME' ) ) {
+	define( 'FIP_PLUGIN_BASENAME', FILTER_INQUIRY_PORTAL_PLUGIN_BASENAME );
+}
+
+if ( ! class_exists( 'FIP_Plugin', false ) ) {
+	require_once FILTER_INQUIRY_PORTAL_PLUGIN_DIR . 'includes/class-fip-plugin.php';
+}
+
+register_activation_hook( FILTER_INQUIRY_PORTAL_PLUGIN_FILE, array( 'FIP_Plugin', 'activate' ) );
+register_deactivation_hook( FILTER_INQUIRY_PORTAL_PLUGIN_FILE, array( 'FIP_Plugin', 'deactivate' ) );
+
+if ( ! function_exists( 'fip_plugin' ) ) {
+	/**
+	 * Returns the main plugin instance.
+	 *
+	 * @return FIP_Plugin
+	 */
+	function fip_plugin() {
+		return FIP_Plugin::instance();
+	}
 }
 
 add_action( 'plugins_loaded', 'fip_plugin' );

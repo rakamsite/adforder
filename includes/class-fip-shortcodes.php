@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Shortcodes', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for shortcode placeholders for the portal templates.
  */
