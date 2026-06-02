@@ -1,0 +1,1 @@
+/* Filter Inquiry Portal frontend scripts placeholder. */
