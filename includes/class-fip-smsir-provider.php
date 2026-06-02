@@ -83,6 +83,12 @@ class FIP_SMSIR_Provider {
 			'parameters' => $this->format_verify_parameters( $parameters ),
 		);
 
+		$this->maybe_allow_smsir_host_when_http_is_blocked();
+
+		if ( $this->is_smsir_host_blocked_by_wordpress() ) {
+			return $this->build_response( false, $this->get_http_blocked_message(), 0, null );
+		}
+
 		$response = wp_remote_post(
 			self::BASE_URL . self::VERIFY_ENDPOINT,
 			array(
@@ -97,7 +103,9 @@ class FIP_SMSIR_Provider {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			return $this->build_response( false, $response->get_error_message(), 0, null );
+			$message = $this->is_http_block_error( $response ) ? $this->get_http_blocked_message() : $response->get_error_message();
+
+			return $this->build_response( false, $message, 0, null );
 		}
 
 		$status_code = absint( wp_remote_retrieve_response_code( $response ) );
@@ -107,6 +115,93 @@ class FIP_SMSIR_Provider {
 		$success     = $this->is_successful_response( $status_code, $parsed_body );
 
 		return $this->build_response( $success, $message, $status_code, $parsed_body );
+	}
+
+	/**
+	 * Allows sms.ir when WordPress is configured to block external HTTP requests.
+	 *
+	 * WordPress checks the WP_ACCESSIBLE_HOSTS constant when WP_HTTP_BLOCK_EXTERNAL
+	 * is enabled. Defining the allow-list at runtime keeps the sms.ir integration
+	 * working on sites that have not already defined a custom allow-list.
+	 *
+	 * @return void
+	 */
+	private function maybe_allow_smsir_host_when_http_is_blocked() {
+		if ( ! defined( 'WP_HTTP_BLOCK_EXTERNAL' ) || ! WP_HTTP_BLOCK_EXTERNAL || defined( 'WP_ACCESSIBLE_HOSTS' ) ) {
+			return;
+		}
+
+		define( 'WP_ACCESSIBLE_HOSTS', 'api.sms.ir' );
+	}
+
+	/**
+	 * Checks whether WordPress will block requests to the sms.ir API host.
+	 *
+	 * @return bool
+	 */
+	private function is_smsir_host_blocked_by_wordpress() {
+		if ( ! defined( 'WP_HTTP_BLOCK_EXTERNAL' ) || ! WP_HTTP_BLOCK_EXTERNAL ) {
+			return false;
+		}
+
+		if ( ! defined( 'WP_ACCESSIBLE_HOSTS' ) ) {
+			return true;
+		}
+
+		return ! $this->is_host_allowed_by_wordpress( 'api.sms.ir', WP_ACCESSIBLE_HOSTS );
+	}
+
+	/**
+	 * Determines whether a host exists in WordPress' external HTTP allow-list.
+	 *
+	 * @param string $host             Hostname to check.
+	 * @param string $accessible_hosts Comma-separated WP_ACCESSIBLE_HOSTS value.
+	 * @return bool
+	 */
+	private function is_host_allowed_by_wordpress( $host, $accessible_hosts ) {
+		$host  = strtolower( trim( (string) $host ) );
+		$items = preg_split( '/,\s*/', strtolower( (string) $accessible_hosts ) );
+
+		foreach ( is_array( $items ) ? $items : array() as $item ) {
+			$item = trim( $item );
+
+			if ( '' === $item ) {
+				continue;
+			}
+
+			$pattern = '/^' . str_replace( '\\*', '.+', preg_quote( $item, '/' ) ) . '$/i';
+
+			if ( 1 === preg_match( $pattern, $host ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Checks whether a WP_Error came from WordPress external HTTP blocking.
+	 *
+	 * @param WP_Error $error WordPress HTTP error.
+	 * @return bool
+	 */
+	private function is_http_block_error( $error ) {
+		return is_wp_error( $error ) && 'http_request_not_executed' === $error->get_error_code();
+	}
+
+	/**
+	 * Returns an actionable message for blocked outbound sms.ir requests.
+	 *
+	 * @return string
+	 */
+	private function get_http_blocked_message() {
+		return sprintf(
+			/* translators: 1: WordPress constant name, 2: WordPress constant name, 3: example wp-config.php code. */
+			__( 'درخواست خروجی وردپرس به api.sms.ir مسدود شده است. اگر در wp-config.php ثابت %1$s فعال است، api.sms.ir را به %2$s اضافه کنید؛ مثال: %3$s', 'filter-inquiry-portal' ),
+			'WP_HTTP_BLOCK_EXTERNAL',
+			'WP_ACCESSIBLE_HOSTS',
+			"define( 'WP_ACCESSIBLE_HOSTS', 'api.sms.ir' );"
+		);
 	}
 
 	/**
