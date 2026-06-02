@@ -57,7 +57,7 @@ class FIP_Auth {
 	}
 
 	/**
-	 * Handles mobile submission and mock OTP creation.
+	 * Handles mobile submission and OTP creation/delivery.
 	 *
 	 * @return array<string,mixed>
 	 */
@@ -90,14 +90,88 @@ class FIP_Auth {
 			return $state;
 		}
 
-		$otp->send_otp_mock( $mobile, $code );
+		$delivery = $this->deliver_otp( $mobile, $code );
+
+		if ( is_wp_error( $delivery ) ) {
+			$otp->clear_otp( $mobile );
+			$state['errors'][] = $delivery->get_error_message();
+			return $state;
+		}
 
 		$state['step']                = 'otp';
-		$state['messages'][]          = __( 'کد ورود برای شماره واردشده آماده شد.', 'filter-inquiry-portal' );
+		$state['messages'][]          = __( 'کد ورود برای شماره واردشده ارسال شد.', 'filter-inquiry-portal' );
 		$state['resend_wait_seconds'] = $otp->get_resend_wait_seconds( $mobile );
 		$state['mock_otp']            = $this->can_show_dev_notice() ? $otp->get_last_mock_otp( $mobile ) : '';
 
 		return $state;
+	}
+
+
+	/**
+	 * Delivers an OTP by real sms.ir Verify SMS when configured, otherwise uses mock mode.
+	 *
+	 * @param string $mobile Normalized mobile number.
+	 * @param string $code   OTP code.
+	 * @return true|WP_Error
+	 */
+	private function deliver_otp( $mobile, $code ) {
+		$settings = $this->get_sms_settings();
+		$logger   = fip_plugin()->get_module( 'sms_logger' );
+		$otp      = $this->get_otp_module();
+
+		if ( $this->should_send_real_otp_sms( $settings ) ) {
+			$provider = new FIP_SMSIR_Provider( $settings );
+			$result   = $provider->send_verify( $mobile, absint( $settings['smsir_template_otp'] ), array( 'CODE' => $code ) );
+
+			if ( ! empty( $result['success'] ) ) {
+				if ( $logger && method_exists( $logger, 'log' ) ) {
+					$logger->log( $mobile, 'otp', 'success', isset( $result['message'] ) ? $result['message'] : '', isset( $result['response'] ) ? $result['response'] : null, null, null );
+				}
+
+				return true;
+			}
+
+			if ( $logger && method_exists( $logger, 'log' ) ) {
+				$logger->log( $mobile, 'otp', 'failed', isset( $result['message'] ) ? $result['message'] : '', isset( $result['response'] ) ? $result['response'] : null, null, null );
+			}
+
+			return new WP_Error( 'fip_otp_sms_failed', __( 'ارسال کد تایید با خطا مواجه شد. لطفاً کمی بعد دوباره تلاش کنید.', 'filter-inquiry-portal' ) );
+		}
+
+		$otp->send_otp_mock( $mobile, $code );
+
+		if ( $logger && method_exists( $logger, 'log' ) ) {
+			$logger->log( $mobile, 'otp', 'skipped', __( 'ارسال واقعی پیامک غیرفعال یا تنظیم نشده است؛ کد در حالت توسعه تولید شد.', 'filter-inquiry-portal' ), null, null, null );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Checks whether OTP should be sent by sms.ir.
+	 *
+	 * @param array<string,mixed> $settings Plugin settings.
+	 * @return bool
+	 */
+	private function should_send_real_otp_sms( $settings ) {
+		return ! empty( $settings['sms_enabled'] ) && ! empty( $settings['smsir_api_key'] ) && ! empty( $settings['smsir_template_otp'] );
+	}
+
+	/**
+	 * Gets plugin SMS settings.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function get_sms_settings() {
+		$settings = fip_plugin()->get_module( 'settings' );
+
+		if ( $settings && method_exists( $settings, 'get_settings' ) ) {
+			return $settings->get_settings();
+		}
+
+		$raw_settings = get_option( 'fip_settings', array() );
+
+		return is_array( $raw_settings ) ? $raw_settings : array();
 	}
 
 	/**
