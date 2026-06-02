@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Melipayamak_Provider', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for Melipayamak SMS provider integration.
  */

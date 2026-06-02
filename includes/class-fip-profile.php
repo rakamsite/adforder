@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Profile', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for customer profile foundations.
  */

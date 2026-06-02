@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Requests', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for customer inquiry request foundations.
  */

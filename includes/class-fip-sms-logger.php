@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_SMS_Logger', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for SMS logging foundations.
  */

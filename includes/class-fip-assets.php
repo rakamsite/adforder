@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Assets', false ) ) {
+	return;
+}
+
 /**
  * Handles plugin asset registration.
  */
@@ -29,31 +33,31 @@ class FIP_Assets {
 	public function register_assets() {
 		wp_register_style(
 			'fip_frontend',
-			FIP_PLUGIN_URL . 'assets/css/frontend.css',
+			FILTER_INQUIRY_PORTAL_PLUGIN_URL . 'assets/css/frontend.css',
 			array(),
-			FIP_VERSION
+			FILTER_INQUIRY_PORTAL_VERSION
 		);
 
 		wp_register_script(
 			'fip_frontend',
-			FIP_PLUGIN_URL . 'assets/js/frontend.js',
+			FILTER_INQUIRY_PORTAL_PLUGIN_URL . 'assets/js/frontend.js',
 			array(),
-			FIP_VERSION,
+			FILTER_INQUIRY_PORTAL_VERSION,
 			true
 		);
 
 		wp_register_style(
 			'fip_admin',
-			FIP_PLUGIN_URL . 'assets/css/admin.css',
+			FILTER_INQUIRY_PORTAL_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
-			FIP_VERSION
+			FILTER_INQUIRY_PORTAL_VERSION
 		);
 
 		wp_register_script(
 			'fip_admin',
-			FIP_PLUGIN_URL . 'assets/js/admin.js',
+			FILTER_INQUIRY_PORTAL_PLUGIN_URL . 'assets/js/admin.js',
 			array(),
-			FIP_VERSION,
+			FILTER_INQUIRY_PORTAL_VERSION,
 			true
 		);
 	}

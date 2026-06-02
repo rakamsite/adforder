@@ -9,6 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( class_exists( 'FIP_Auth', false ) ) {
+	return;
+}
+
 /**
  * Placeholder for mobile authentication foundations.
  */
