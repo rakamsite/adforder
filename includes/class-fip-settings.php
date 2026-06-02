@@ -55,6 +55,7 @@ class FIP_Settings {
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_post_fip_send_test_sms', array( $this, 'handle_test_sms' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 	}
 
@@ -249,6 +250,90 @@ class FIP_Settings {
 		add_settings_field( 'sms_test_mobile', __( 'شماره تست پیامک', 'filter-inquiry-portal' ), array( $this, 'render_text_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => 'sms_test_mobile' ) );
 	}
 
+
+	/**
+	 * Handles admin test SMS sending.
+	 *
+	 * @return void
+	 */
+	public function handle_test_sms() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'شما مجوز ارسال پیامک تست را ندارید.', 'filter-inquiry-portal' ) );
+		}
+
+		$nonce = isset( $_POST['fip_send_test_sms_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['fip_send_test_sms_nonce'] ) ) : '';
+
+		if ( ! wp_verify_nonce( $nonce, 'fip_send_test_sms' ) ) {
+			$this->redirect_test_sms_result( 'error', __( 'اعتبار درخواست تست پیامک منقضی شده است.', 'filter-inquiry-portal' ) );
+		}
+
+		$settings    = $this->get_settings();
+		$mobile      = isset( $settings['sms_test_mobile'] ) ? sanitize_text_field( $settings['sms_test_mobile'] ) : '';
+		$template_id = isset( $settings['smsir_template_otp'] ) ? absint( $settings['smsir_template_otp'] ) : 0;
+		$logger      = fip_plugin()->get_module( 'sms_logger' );
+
+		if ( empty( $settings['smsir_api_key'] ) || $template_id <= 0 || '' === $mobile ) {
+			if ( $logger && method_exists( $logger, 'log' ) ) {
+				$logger->log( $mobile, 'test', 'failed', __( 'تنظیمات پیامک تست کامل نیست.', 'filter-inquiry-portal' ), null, null, get_current_user_id() );
+			}
+
+			$this->redirect_test_sms_result( 'error', __( 'برای تست پیامک، API Key، Template ID کد ورود و شماره تست را ذخیره کنید.', 'filter-inquiry-portal' ) );
+		}
+
+		$provider = new FIP_SMSIR_Provider( $settings );
+		$result   = $provider->send_verify( $mobile, $template_id, array( 'CODE' => '12345' ) );
+		$status   = ! empty( $result['success'] ) ? 'success' : 'failed';
+		$message  = isset( $result['message'] ) ? $result['message'] : '';
+
+		if ( $logger && method_exists( $logger, 'log' ) ) {
+			$logger->log( $mobile, 'test', $status, $message, isset( $result['response'] ) ? $result['response'] : null, null, get_current_user_id() );
+		}
+
+		if ( 'success' === $status ) {
+			$this->redirect_test_sms_result( 'success', __( 'پیامک تست با موفقیت ارسال شد.', 'filter-inquiry-portal' ) );
+		}
+
+		$this->redirect_test_sms_result( 'error', __( 'ارسال پیامک تست با خطا مواجه شد. تنظیمات و قالب sms.ir را بررسی کنید.', 'filter-inquiry-portal' ) );
+	}
+
+	/**
+	 * Renders admin notice for test SMS result.
+	 *
+	 * @return void
+	 */
+	private function render_test_sms_notice() {
+		$status  = isset( $_GET['fip_sms_test_status'] ) ? sanitize_key( wp_unslash( $_GET['fip_sms_test_status'] ) ) : '';
+		$message = isset( $_GET['fip_sms_test_message'] ) ? sanitize_text_field( wp_unslash( $_GET['fip_sms_test_message'] ) ) : '';
+
+		if ( ! $status || ! $message ) {
+			return;
+		}
+
+		$class = 'success' === $status ? 'notice notice-success is-dismissible' : 'notice notice-error is-dismissible';
+		echo '<div class="' . esc_attr( $class ) . '"><p>' . esc_html( $message ) . '</p></div>';
+	}
+
+	/**
+	 * Redirects back to settings with a sanitized test SMS result.
+	 *
+	 * @param string $status  success|error.
+	 * @param string $message Notice message.
+	 * @return void
+	 */
+	private function redirect_test_sms_result( $status, $message ) {
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'                 => 'fip_settings',
+					'fip_sms_test_status'  => sanitize_key( $status ),
+					'fip_sms_test_message' => sanitize_text_field( $message ),
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
 	/**
 	 * Enqueues admin assets only on this plugin settings page.
 	 *
@@ -352,13 +437,22 @@ class FIP_Settings {
 		?>
 		<div class="wrap fip_admin_wrap" dir="rtl">
 			<h1><?php echo esc_html__( 'تنظیمات پنل استعلام', 'filter-inquiry-portal' ); ?></h1>
-			<p class="description"><?php echo esc_html__( 'در Phase 1 فقط تنظیمات پایه، نگاشت صفحات و شورت‌کدهای نمایشی فعال شده‌اند.', 'filter-inquiry-portal' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'تنظیمات پایه، صفحات، پروفایل، درخواست‌ها و اتصال پیامک sms.ir را مدیریت کنید.', 'filter-inquiry-portal' ); ?></p>
+			<?php $this->render_test_sms_notice(); ?>
 			<form method="post" action="options.php">
 				<?php
 				settings_fields( 'fip_settings_group' );
 				do_settings_sections( 'fip_settings' );
 				submit_button( __( 'ذخیره تنظیمات', 'filter-inquiry-portal' ) );
 				?>
+			</form>
+			<hr />
+			<h2><?php echo esc_html__( 'تست پیامک sms.ir', 'filter-inquiry-portal' ); ?></h2>
+			<p class="description"><?php echo esc_html__( 'پس از ذخیره API Key، Template ID کد ورود و شماره تست، از این دکمه برای ارسال کد تست 12345 استفاده کنید.', 'filter-inquiry-portal' ); ?></p>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="fip_send_test_sms" />
+				<?php wp_nonce_field( 'fip_send_test_sms', 'fip_send_test_sms_nonce' ); ?>
+				<?php submit_button( __( 'ارسال پیامک تست', 'filter-inquiry-portal' ), 'secondary', 'submit', false ); ?>
 			</form>
 		</div>
 		<?php
@@ -386,7 +480,7 @@ class FIP_Settings {
 
 	/** Section intro. */
 	public function render_sms_section_intro() {
-		echo '<p>' . esc_html__( 'برای پیامک‌های ورود و اطلاع‌رسانی خدماتی، افزونه از متد Verify سامانه sms.ir استفاده خواهد کرد. در این فاز ارسال واقعی پیامک پیاده‌سازی نمی‌شود و فقط تنظیمات آماده می‌شوند.', 'filter-inquiry-portal' ) . '</p>';
+		echo '<p>' . esc_html__( 'برای پیامک ورود، افزونه از متد Verify سامانه sms.ir استفاده می‌کند. قالب OTP باید پارامتر CODE داشته باشد.', 'filter-inquiry-portal' ) . '</p>';
 	}
 
 	/**
@@ -441,8 +535,7 @@ class FIP_Settings {
 		<?php endif; ?>
 		<?php
 		if ( 'sms_test_mobile' === $key ) {
-			echo '<p class="description">' . esc_html__( 'ارسال پیامک تست در فاز اتصال واقعی sms.ir فعال خواهد شد.', 'filter-inquiry-portal' ) . '</p>';
-			echo '<button type="button" class="button" disabled="disabled">' . esc_html__( 'ارسال تست پیامک', 'filter-inquiry-portal' ) . '</button>';
+			echo '<p class="description">' . esc_html__( 'برای تست، تنظیمات را ذخیره کنید و سپس از دکمه تست پایین صفحه استفاده کنید.', 'filter-inquiry-portal' ) . '</p>';
 		}
 	}
 

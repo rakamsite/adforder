@@ -137,7 +137,14 @@ final class FIP_Plugin {
 			require_once FILTER_INQUIRY_PORTAL_PLUGIN_DIR . 'includes/class-fip-requests.php';
 		}
 
+		if ( ! class_exists( 'FIP_SMS_Logger', false ) ) {
+			require_once FILTER_INQUIRY_PORTAL_PLUGIN_DIR . 'includes/class-fip-sms-logger.php';
+		}
+
 		FIP_Requests::register_post_type();
+
+		$sms_logger = new FIP_SMS_Logger();
+		$sms_logger->maybe_create_table();
 	}
 
 	/**
