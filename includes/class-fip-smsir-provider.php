@@ -18,8 +18,10 @@ if ( class_exists( 'FIP_SMSIR_Provider', false ) ) {
  */
 class FIP_SMSIR_Provider {
 
-	const BASE_URL        = 'https://api.sms.ir';
-	const VERIFY_ENDPOINT = '/v1/send/verify';
+	const BASE_URL         = 'https://api.sms.ir';
+	const VERIFY_ENDPOINT  = '/v1/send/verify';
+	const SUCCESS_HTTP_MIN = 200;
+	const SUCCESS_HTTP_MAX = 299;
 
 	/**
 	 * Provider settings.
@@ -88,7 +90,7 @@ class FIP_SMSIR_Provider {
 				'headers' => array(
 					'Content-Type' => 'application/json',
 					'Accept'       => 'application/json, text/plain',
-					'x-api-key'    => $api_key,
+					'X-API-KEY'    => $api_key,
 				),
 				'body'    => wp_json_encode( $body ),
 			)
@@ -119,7 +121,7 @@ class FIP_SMSIR_Provider {
 	}
 
 	/**
-	 * Normalizes a mobile number for sms.ir Verify requests (9123456789).
+	 * Normalizes a mobile number for sms.ir Verify requests (09123456789).
 	 *
 	 * @param string $mobile Mobile number.
 	 * @return string
@@ -129,13 +131,13 @@ class FIP_SMSIR_Provider {
 		$mobile = preg_replace( '/[^0-9+]/', '', $mobile );
 
 		if ( 0 === strpos( $mobile, '+98' ) ) {
-			$mobile = substr( $mobile, 3 );
+			$mobile = '0' . substr( $mobile, 3 );
 		} elseif ( 0 === strpos( $mobile, '0098' ) ) {
-			$mobile = substr( $mobile, 4 );
+			$mobile = '0' . substr( $mobile, 4 );
 		} elseif ( 0 === strpos( $mobile, '98' ) ) {
-			$mobile = substr( $mobile, 2 );
-		} elseif ( 0 === strpos( $mobile, '0' ) ) {
-			$mobile = substr( $mobile, 1 );
+			$mobile = '0' . substr( $mobile, 2 );
+		} elseif ( 0 === strpos( $mobile, '9' ) ) {
+			$mobile = '0' . $mobile;
 		}
 
 		return preg_replace( '/\D+/', '', $mobile );
@@ -148,7 +150,7 @@ class FIP_SMSIR_Provider {
 	 * @return bool
 	 */
 	private function is_valid_provider_mobile( $mobile ) {
-		return 1 === preg_match( '/^9\d{9}$/', (string) $mobile );
+		return 1 === preg_match( '/^09\d{9}$/', (string) $mobile );
 	}
 
 	/**
@@ -208,15 +210,65 @@ class FIP_SMSIR_Provider {
 					return sanitize_text_field( (string) $response[ $key ] );
 				}
 			}
+
+			$detail = $this->extract_response_detail( $response );
+			if ( '' !== $detail ) {
+				return $detail;
+			}
 		}
 
 		if ( is_string( $response ) && '' !== trim( $response ) ) {
 			return sanitize_text_field( $response );
 		}
 
-		return $status_code >= 200 && $status_code < 300
+		return $status_code >= self::SUCCESS_HTTP_MIN && $status_code <= self::SUCCESS_HTTP_MAX
 			? __( 'پیامک با موفقیت ارسال شد.', 'filter-inquiry-portal' )
 			: __( 'ارسال پیامک با خطا مواجه شد.', 'filter-inquiry-portal' );
+	}
+
+	/**
+	 * Extracts nested validation details from sms.ir responses when present.
+	 *
+	 * @param array<string,mixed> $response Parsed provider response.
+	 * @return string
+	 */
+	private function extract_response_detail( array $response ) {
+		$details = array();
+		$keys    = array( 'data', 'errors', 'Errors', 'validationErrors' );
+
+		foreach ( $keys as $key ) {
+			if ( isset( $response[ $key ] ) ) {
+				$details = array_merge( $details, $this->flatten_response_messages( $response[ $key ] ) );
+			}
+		}
+
+		$details = array_filter( array_map( 'trim', $details ), 'strlen' );
+
+		return empty( $details ) ? '' : sanitize_text_field( implode( ' | ', array_slice( array_unique( $details ), 0, 3 ) ) );
+	}
+
+	/**
+	 * Flattens scalar messages from a nested provider response.
+	 *
+	 * @param mixed $value Response value.
+	 * @return string[]
+	 */
+	private function flatten_response_messages( $value ) {
+		$messages = array();
+
+		if ( is_scalar( $value ) ) {
+			return array( (string) $value );
+		}
+
+		if ( ! is_array( $value ) ) {
+			return $messages;
+		}
+
+		foreach ( $value as $nested ) {
+			$messages = array_merge( $messages, $this->flatten_response_messages( $nested ) );
+		}
+
+		return $messages;
 	}
 
 	/**
@@ -227,7 +279,7 @@ class FIP_SMSIR_Provider {
 	 * @return bool
 	 */
 	private function is_successful_response( $status_code, $response ) {
-		if ( $status_code < 200 || $status_code >= 300 ) {
+		if ( $status_code < self::SUCCESS_HTTP_MIN || $status_code > self::SUCCESS_HTTP_MAX ) {
 			return false;
 		}
 
