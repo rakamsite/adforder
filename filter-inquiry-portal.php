@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Filter Inquiry Portal
  * Plugin URI: https://example.com/filter-inquiry-portal
- * Description: Foundation for a Persian/RTL filter inquiry portal plugin. Phase 0 provides only the modular plugin bootstrap.
- * Version: 0.1.0
+ * Description: Persian/RTL filter inquiry portal plugin. Phase 1 adds settings and shortcode placeholders.
+ * Version: 0.2.0
  * Author: Filter Inquiry Portal Team
  * Author URI: https://example.com
  * Text Domain: filter-inquiry-portal
@@ -24,7 +24,7 @@ if ( defined( 'FILTER_INQUIRY_PORTAL_PLUGIN_FILE' ) || class_exists( 'FIP_Plugin
 	return;
 }
 
-define( 'FILTER_INQUIRY_PORTAL_VERSION', '0.1.0' );
+define( 'FILTER_INQUIRY_PORTAL_VERSION', '0.2.0' );
 define( 'FILTER_INQUIRY_PORTAL_PLUGIN_FILE', __FILE__ );
 define( 'FILTER_INQUIRY_PORTAL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FILTER_INQUIRY_PORTAL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
