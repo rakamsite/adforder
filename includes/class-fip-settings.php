@@ -361,37 +361,7 @@ class FIP_Settings {
 			$this->redirect_test_sms_result( 'success', __( 'پیامک تست با موفقیت ارسال شد.', 'filter-inquiry-portal' ) );
 		}
 
-		$this->redirect_test_sms_result( 'error', $this->format_test_sms_error_message( $result ) );
-	}
-
-	/**
-	 * Builds a detailed admin-safe test SMS error message.
-	 *
-	 * @param array<string,mixed> $result Provider result.
-	 * @return string
-	 */
-	private function format_test_sms_error_message( $result ) {
-		$message     = is_array( $result ) && isset( $result['message'] ) ? trim( (string) $result['message'] ) : '';
-		$status_code = is_array( $result ) && isset( $result['status_code'] ) ? absint( $result['status_code'] ) : 0;
-
-		if ( '' === $message ) {
-			$message = __( 'ارسال پیامک تست با خطا مواجه شد. تنظیمات و قالب sms.ir را بررسی کنید.', 'filter-inquiry-portal' );
-		}
-
-		if ( $status_code > 0 ) {
-			return sprintf(
-				/* translators: 1: provider message, 2: HTTP status code. */
-				__( 'ارسال پیامک تست با خطا مواجه شد: %1$s (کد پاسخ sms.ir: %2$d)', 'filter-inquiry-portal' ),
-				$message,
-				$status_code
-			);
-		}
-
-		return sprintf(
-			/* translators: %s: provider message. */
-			__( 'ارسال پیامک تست با خطا مواجه شد: %s', 'filter-inquiry-portal' ),
-			$message
-		);
+		$this->redirect_test_sms_result( 'error', __( 'ارسال پیامک تست با خطا مواجه شد. تنظیمات و قالب sms.ir را بررسی کنید.', 'filter-inquiry-portal' ) );
 	}
 
 	/**
@@ -543,7 +513,7 @@ class FIP_Settings {
 			</form>
 			<hr />
 			<h2><?php echo esc_html__( 'تست پیامک sms.ir', 'filter-inquiry-portal' ); ?></h2>
-			<p class="description"><?php echo esc_html__( 'پس از ذخیره API Key، Template ID کد ورود و شماره تست، از این دکمه برای ارسال کد تست 12345 استفاده کنید. شماره موبایل طبق نمونه رسمی sms.ir با فرمت 09xxxxxxxxx ارسال می‌شود.', 'filter-inquiry-portal' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'پس از ذخیره API Key، Template ID کد ورود و شماره تست، از این دکمه برای ارسال کد تست 12345 استفاده کنید.', 'filter-inquiry-portal' ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="fip_send_test_sms" />
 				<?php wp_nonce_field( 'fip_send_test_sms', 'fip_send_test_sms_nonce' ); ?>
