@@ -86,7 +86,7 @@ final class FIP_Plugin {
 			'class-fip-admin.php',
 			'class-fip-settings.php',
 			'class-fip-sms-logger.php',
-			'class-fip-melipayamak-provider.php',
+			'class-fip-smsir-provider.php',
 		);
 
 		foreach ( $files as $file ) {
@@ -111,7 +111,7 @@ final class FIP_Plugin {
 			'admin'                => new FIP_Admin(),
 			'settings'             => new FIP_Settings(),
 			'sms_logger'           => new FIP_SMS_Logger(),
-			'melipayamak_provider' => new FIP_Melipayamak_Provider(),
+			'smsir_provider'       => new FIP_SMSIR_Provider(),
 		);
 	}
 

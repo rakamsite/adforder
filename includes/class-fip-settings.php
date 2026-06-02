@@ -83,18 +83,18 @@ class FIP_Settings {
 			'sms_admin_new_request_enabled'         => 0,
 			'admin_mobile'                          => '',
 			'sms_enabled'                           => 0,
-			'sms_connection_type'                   => 'rest_token',
-			'sms_api_token'                         => '',
-			'sms_username'                          => '',
-			'sms_password'                          => '',
-			'sms_sender'                            => '',
-			'sms_pattern_otp'                       => '',
-			'sms_pattern_request_created'           => '',
-			'sms_pattern_status_reviewing'          => '',
-			'sms_pattern_status_need_info'          => '',
-			'sms_pattern_status_answered'           => '',
-			'sms_pattern_status_rejected'           => '',
-			'sms_pattern_status_closed'             => '',
+			'sms_provider'                          => 'smsir',
+			'smsir_api_key'                         => '',
+			'smsir_default_line_number'             => '',
+			'smsir_use_verify_for_notifications'    => 1,
+			'smsir_template_otp'                    => 0,
+			'smsir_template_request_created'        => 0,
+			'smsir_template_status_reviewing'       => 0,
+			'smsir_template_status_need_info'       => 0,
+			'smsir_template_status_answered'        => 0,
+			'smsir_template_status_rejected'        => 0,
+			'smsir_template_status_closed'          => 0,
+			'smsir_template_admin_new_request'      => 0,
 			'sms_test_mobile'                       => '',
 		);
 	}
@@ -225,29 +225,28 @@ class FIP_Settings {
 		add_settings_field( 'sms_admin_new_request_enabled', __( 'ارسال پیامک به مدیر هنگام ثبت درخواست جدید', 'filter-inquiry-portal' ), array( $this, 'render_checkbox_field' ), 'fip_settings', 'fip_request_settings', array( 'key' => 'sms_admin_new_request_enabled' ) );
 		add_settings_field( 'admin_mobile', __( 'شماره موبایل مدیر', 'filter-inquiry-portal' ), array( $this, 'render_text_field' ), 'fip_settings', 'fip_request_settings', array( 'key' => 'admin_mobile', 'description' => __( 'در این فاز فقط ذخیره می‌شود و اعتبارسنجی عمیق شماره انجام نمی‌شود.', 'filter-inquiry-portal' ) ) );
 
-		add_settings_section( 'fip_sms_settings', __( 'تنظیمات پیامک', 'filter-inquiry-portal' ), array( $this, 'render_sms_section_intro' ), 'fip_settings' );
+		add_settings_section( 'fip_sms_settings', __( 'تنظیمات پیامک sms.ir', 'filter-inquiry-portal' ), array( $this, 'render_sms_section_intro' ), 'fip_settings' );
 		add_settings_field( 'sms_enabled', __( 'فعال‌سازی پیامک', 'filter-inquiry-portal' ), array( $this, 'render_checkbox_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => 'sms_enabled' ) );
-		add_settings_field( 'sms_connection_type', __( 'نوع اتصال ملی‌پیامک', 'filter-inquiry-portal' ), array( $this, 'render_sms_connection_type_field' ), 'fip_settings', 'fip_sms_settings' );
+		add_settings_field( 'smsir_api_key', __( 'API Key سامانه sms.ir', 'filter-inquiry-portal' ), array( $this, 'render_text_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => 'smsir_api_key', 'type' => 'password' ) );
+		add_settings_field( 'smsir_default_line_number', __( 'شماره خط پیش‌فرض، فقط برای ارسال‌های غیر Verify', 'filter-inquiry-portal' ), array( $this, 'render_text_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => 'smsir_default_line_number' ) );
+		add_settings_field( 'smsir_use_verify_for_notifications', __( 'استفاده از ارسال قالبی/Verify برای پیامک‌های اطلاع‌رسانی', 'filter-inquiry-portal' ), array( $this, 'render_checkbox_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => 'smsir_use_verify_for_notifications' ) );
 
-		$sms_text_fields = array(
-			'sms_api_token'                => __( 'API Key / Token', 'filter-inquiry-portal' ),
-			'sms_username'                 => __( 'Username', 'filter-inquiry-portal' ),
-			'sms_password'                 => __( 'Password', 'filter-inquiry-portal' ),
-			'sms_sender'                   => __( 'شماره فرستنده', 'filter-inquiry-portal' ),
-			'sms_pattern_otp'              => __( 'Pattern ID کد ورود', 'filter-inquiry-portal' ),
-			'sms_pattern_request_created'  => __( 'Pattern ID ثبت درخواست', 'filter-inquiry-portal' ),
-			'sms_pattern_status_reviewing' => __( 'Pattern ID وضعیت در حال بررسی', 'filter-inquiry-portal' ),
-			'sms_pattern_status_need_info' => __( 'Pattern ID وضعیت نیاز به اطلاعات بیشتر', 'filter-inquiry-portal' ),
-			'sms_pattern_status_answered'  => __( 'Pattern ID وضعیت پاسخ داده شد', 'filter-inquiry-portal' ),
-			'sms_pattern_status_rejected'  => __( 'Pattern ID وضعیت رد شد', 'filter-inquiry-portal' ),
-			'sms_pattern_status_closed'    => __( 'Pattern ID وضعیت بسته شد', 'filter-inquiry-portal' ),
-			'sms_test_mobile'              => __( 'شماره تست پیامک', 'filter-inquiry-portal' ),
+		$smsir_template_fields = array(
+			'smsir_template_otp'               => __( 'Template ID کد ورود', 'filter-inquiry-portal' ),
+			'smsir_template_request_created'   => __( 'Template ID ثبت درخواست', 'filter-inquiry-portal' ),
+			'smsir_template_status_reviewing'  => __( 'Template ID وضعیت در حال بررسی', 'filter-inquiry-portal' ),
+			'smsir_template_status_need_info'  => __( 'Template ID وضعیت نیاز به اطلاعات بیشتر', 'filter-inquiry-portal' ),
+			'smsir_template_status_answered'   => __( 'Template ID وضعیت پاسخ داده شد', 'filter-inquiry-portal' ),
+			'smsir_template_status_rejected'   => __( 'Template ID وضعیت رد شد', 'filter-inquiry-portal' ),
+			'smsir_template_status_closed'     => __( 'Template ID وضعیت بسته شد', 'filter-inquiry-portal' ),
+			'smsir_template_admin_new_request' => __( 'Template ID پیامک مدیر برای درخواست جدید', 'filter-inquiry-portal' ),
 		);
 
-		foreach ( $sms_text_fields as $key => $label ) {
-			$type = in_array( $key, array( 'sms_api_token', 'sms_password' ), true ) ? 'password' : 'text';
-			add_settings_field( $key, $label, array( $this, 'render_text_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => $key, 'type' => $type ) );
+		foreach ( $smsir_template_fields as $key => $label ) {
+			add_settings_field( $key, $label, array( $this, 'render_text_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => $key, 'type' => 'number' ) );
 		}
+
+		add_settings_field( 'sms_test_mobile', __( 'شماره تست پیامک', 'filter-inquiry-portal' ), array( $this, 'render_text_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => 'sms_test_mobile' ) );
 	}
 
 	/**
@@ -296,28 +295,28 @@ class FIP_Settings {
 		$output['sms_admin_new_request_enabled'] = empty( $input['sms_admin_new_request_enabled'] ) ? 0 : 1;
 		$output['admin_mobile'] = isset( $input['admin_mobile'] ) ? sanitize_text_field( wp_unslash( $input['admin_mobile'] ) ) : '';
 
-		$output['sms_enabled'] = empty( $input['sms_enabled'] ) ? 0 : 1;
-		$connection_type = isset( $input['sms_connection_type'] ) ? sanitize_key( wp_unslash( $input['sms_connection_type'] ) ) : 'rest_token';
-		$output['sms_connection_type'] = in_array( $connection_type, array( 'rest_token', 'username_password' ), true ) ? $connection_type : 'rest_token';
+		$output['sms_enabled']                        = empty( $input['sms_enabled'] ) ? 0 : 1;
+		$output['sms_provider']                       = 'smsir';
+		$output['smsir_api_key']                      = isset( $input['smsir_api_key'] ) ? sanitize_text_field( wp_unslash( $input['smsir_api_key'] ) ) : '';
+		$output['smsir_default_line_number']          = isset( $input['smsir_default_line_number'] ) ? preg_replace( '/[^0-9]/', '', sanitize_text_field( wp_unslash( $input['smsir_default_line_number'] ) ) ) : '';
+		$output['smsir_use_verify_for_notifications'] = empty( $input['smsir_use_verify_for_notifications'] ) ? 0 : 1;
 
-		$sms_keys = array(
-			'sms_api_token',
-			'sms_username',
-			'sms_password',
-			'sms_sender',
-			'sms_pattern_otp',
-			'sms_pattern_request_created',
-			'sms_pattern_status_reviewing',
-			'sms_pattern_status_need_info',
-			'sms_pattern_status_answered',
-			'sms_pattern_status_rejected',
-			'sms_pattern_status_closed',
-			'sms_test_mobile',
+		$smsir_template_keys = array(
+			'smsir_template_otp',
+			'smsir_template_request_created',
+			'smsir_template_status_reviewing',
+			'smsir_template_status_need_info',
+			'smsir_template_status_answered',
+			'smsir_template_status_rejected',
+			'smsir_template_status_closed',
+			'smsir_template_admin_new_request',
 		);
 
-		foreach ( $sms_keys as $key ) {
-			$output[ $key ] = isset( $input[ $key ] ) ? sanitize_text_field( wp_unslash( $input[ $key ] ) ) : '';
+		foreach ( $smsir_template_keys as $key ) {
+			$output[ $key ] = isset( $input[ $key ] ) ? absint( $input[ $key ] ) : 0;
 		}
+
+		$output['sms_test_mobile'] = isset( $input['sms_test_mobile'] ) ? sanitize_text_field( wp_unslash( $input['sms_test_mobile'] ) ) : '';
 
 		return wp_parse_args( $output, $defaults );
 	}
@@ -387,7 +386,7 @@ class FIP_Settings {
 
 	/** Section intro. */
 	public function render_sms_section_intro() {
-		echo '<p>' . esc_html__( 'در این فاز فقط تنظیمات پیامک ذخیره می‌شود و هیچ پیامکی ارسال نخواهد شد.', 'filter-inquiry-portal' ) . '</p>';
+		echo '<p>' . esc_html__( 'برای پیامک‌های ورود و اطلاع‌رسانی خدماتی، افزونه از متد Verify سامانه sms.ir استفاده خواهد کرد. در این فاز ارسال واقعی پیامک پیاده‌سازی نمی‌شود و فقط تنظیمات آماده می‌شوند.', 'filter-inquiry-portal' ) . '</p>';
 	}
 
 	/**
@@ -442,7 +441,7 @@ class FIP_Settings {
 		<?php endif; ?>
 		<?php
 		if ( 'sms_test_mobile' === $key ) {
-			echo '<p class="description">' . esc_html__( 'ارسال پیامک تست در فاز اتصال ملی‌پیامک فعال خواهد شد.', 'filter-inquiry-portal' ) . '</p>';
+			echo '<p class="description">' . esc_html__( 'ارسال پیامک تست در فاز اتصال واقعی sms.ir فعال خواهد شد.', 'filter-inquiry-portal' ) . '</p>';
 			echo '<button type="button" class="button" disabled="disabled">' . esc_html__( 'ارسال تست پیامک', 'filter-inquiry-portal' ) . '</button>';
 		}
 	}
@@ -492,24 +491,4 @@ class FIP_Settings {
 		<?php
 	}
 
-	/**
-	 * Renders SMS connection type select.
-	 *
-	 * @return void
-	 */
-	public function render_sms_connection_type_field() {
-		$value   = $this->get_option( 'sms_connection_type', 'rest_token' );
-		$options = array(
-			'rest_token'        => __( 'REST Token', 'filter-inquiry-portal' ),
-			'username_password' => __( 'Username / Password', 'filter-inquiry-portal' ),
-		);
-		?>
-		<select id="fip_sms_connection_type" name="<?php echo esc_attr( self::OPTION_NAME . '[sms_connection_type]' ); ?>">
-			<?php foreach ( $options as $option_value => $label ) : ?>
-				<option value="<?php echo esc_attr( $option_value ); ?>" <?php selected( $value, $option_value ); ?>><?php echo esc_html( $label ); ?></option>
-			<?php endforeach; ?>
-		</select>
-		<p class="description"><?php echo esc_html__( 'نوع اتصال فقط ذخیره می‌شود؛ اتصال واقعی ملی‌پیامک در فاز بعدی انجام خواهد شد.', 'filter-inquiry-portal' ); ?></p>
-		<?php
-	}
 }
