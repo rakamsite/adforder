@@ -66,6 +66,15 @@ class FIP_Shortcodes {
 			return '';
 		}
 
+		if ( 'filter_portal_login' === $shortcode ) {
+			$this->enqueue_frontend_assets();
+
+			$auth = fip_plugin()->get_module( 'auth' );
+			if ( $auth && method_exists( $auth, 'render_login_form' ) ) {
+				return $auth->render_login_form();
+			}
+		}
+
 		$is_profile_shortcode = in_array( $shortcode, array( 'filter_portal_complete_profile', 'filter_portal_edit_profile' ), true );
 		if ( $is_profile_shortcode ) {
 			$this->enqueue_profile_assets();
