@@ -95,7 +95,7 @@ final class FIP_Plugin {
 	}
 
 	/**
-	 * Instantiates Phase 0 modules.
+	 * Instantiates plugin modules.
 	 *
 	 * @return void
 	 */
@@ -133,7 +133,7 @@ final class FIP_Plugin {
 	public static function activate() {
 		update_option( 'fip_version', FILTER_INQUIRY_PORTAL_VERSION, false );
 
-		// Phase 0 does not register rewrite rules, so no rewrite flush is needed.
+		// Phase 1 does not register rewrite rules, so no rewrite flush is needed.
 	}
 
 	/**

@@ -1,1 +1,27 @@
-/* Filter Inquiry Portal admin styles placeholder. */
+/* Filter Inquiry Portal admin styles. Loaded only on the plugin settings page. */
+.fip_admin_wrap {
+	max-width: 980px;
+}
+
+.fip_admin_wrap h1,
+.fip_admin_wrap h2,
+.fip_admin_wrap p,
+.fip_admin_wrap table {
+	direction: rtl;
+	text-align: right;
+}
+
+.fip_admin_wrap .form-table th {
+	padding-right: 0;
+	width: 280px;
+}
+
+.fip_admin_wrap .form-table td select,
+.fip_admin_wrap .form-table td .regular-text,
+.fip_admin_wrap .form-table td .large-text {
+	max-width: 100%;
+}
+
+.fip_admin_wrap .description {
+	line-height: 1.9;
+}
