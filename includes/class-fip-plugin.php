@@ -133,7 +133,11 @@ final class FIP_Plugin {
 	public static function activate() {
 		update_option( 'fip_version', FILTER_INQUIRY_PORTAL_VERSION, false );
 
-		// Phase 1 does not register rewrite rules, so no rewrite flush is needed.
+		if ( ! class_exists( 'FIP_Requests', false ) ) {
+			require_once FILTER_INQUIRY_PORTAL_PLUGIN_DIR . 'includes/class-fip-requests.php';
+		}
+
+		FIP_Requests::register_post_type();
 	}
 
 	/**
