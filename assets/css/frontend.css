@@ -167,3 +167,255 @@
 	cursor: not-allowed;
 	opacity: 0.6;
 }
+
+/* Phase 5 customer dashboard. */
+.fip-dashboard {
+	direction: rtl;
+	display: flex;
+	gap: 1.25rem;
+	margin: 1.5rem 0;
+	text-align: right;
+}
+
+.fip-dashboard--gated {
+	display: block;
+}
+
+.fip-dashboard__sidebar {
+	flex: 0 0 30%;
+	max-width: 30%;
+}
+
+.fip-dashboard__content {
+	display: grid;
+	flex: 1 1 70%;
+	gap: 1.25rem;
+	min-width: 0;
+}
+
+.fip-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 12px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+	padding: 1.25rem;
+}
+
+.fip-dashboard__menu-title,
+.fip-dashboard__hero h1,
+.fip-dashboard__section-header h2,
+.fip-dashboard__notice h2 {
+	margin: 0;
+}
+
+.fip-dashboard__menu-title {
+	font-size: 1.1rem;
+	margin-bottom: 0.9rem;
+}
+
+.fip-dashboard-menu__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.fip-dashboard-menu__list li,
+.fip-dashboard-menu__item {
+	margin: 0 0 0.5rem;
+}
+
+.fip-dashboard-menu__list a {
+	background: #f6f7f7;
+	border-radius: 9px;
+	color: #1d2327;
+	display: block;
+	font-weight: 700;
+	padding: 0.7rem 0.85rem;
+	text-decoration: none;
+}
+
+.fip-dashboard-menu__list a:hover,
+.fip-dashboard-menu__list a:focus {
+	background: #eef6ff;
+	color: #135e96;
+	text-decoration: none;
+}
+
+.fip-button,
+.fip_button {
+	align-items: center;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	box-sizing: border-box;
+	color: #1d2327;
+	display: inline-flex;
+	font-weight: 700;
+	justify-content: center;
+	line-height: 1.7;
+	padding: 0.55rem 1rem;
+	text-decoration: none;
+}
+
+.fip-button--primary,
+.fip_button--primary {
+	background: #2271b1;
+	border-color: #2271b1;
+	color: #fff;
+}
+
+.fip-button--large {
+	font-size: 1.1rem;
+	min-width: 180px;
+	padding: 0.85rem 1.4rem;
+}
+
+.fip-button:hover,
+.fip-button:focus,
+.fip_button:hover,
+.fip_button:focus {
+	text-decoration: none;
+}
+
+.fip-dashboard__notice {
+	background: #fff8e5;
+	border-color: #f0c36d;
+}
+
+.fip-dashboard__notice-content {
+	line-height: 1.9;
+	margin-top: 0.75rem;
+}
+
+.fip-dashboard__notice-content p:last-child {
+	margin-bottom: 0;
+}
+
+.fip-dashboard__hero,
+.fip-dashboard__section-header {
+	align-items: center;
+	display: flex;
+	gap: 1rem;
+	justify-content: space-between;
+}
+
+.fip-dashboard__hero p {
+	color: #50575e;
+	margin: 0.5rem 0 0;
+}
+
+.fip-dashboard__summary-list {
+	display: grid;
+	gap: 0.85rem;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	margin: 1rem 0 0;
+}
+
+.fip-dashboard__summary-list div {
+	background: #f6f7f7;
+	border-radius: 9px;
+	padding: 0.8rem;
+}
+
+.fip-dashboard__summary-list dt {
+	color: #646970;
+	font-size: 0.9rem;
+	margin-bottom: 0.25rem;
+}
+
+.fip-dashboard__summary-list dd {
+	font-weight: 700;
+	margin: 0;
+}
+
+.fip-request-table-wrap {
+	overflow-x: auto;
+}
+
+.fip-request-table {
+	border-collapse: collapse;
+	margin-top: 1rem;
+	min-width: 640px;
+	width: 100%;
+}
+
+.fip-request-table th,
+.fip-request-table td {
+	border-bottom: 1px solid #dcdcde;
+	padding: 0.75rem;
+	text-align: right;
+	vertical-align: middle;
+}
+
+.fip-request-table th {
+	background: #f6f7f7;
+	font-weight: 700;
+}
+
+.fip-status-badge {
+	background: #eef6ff;
+	border-radius: 999px;
+	color: #135e96;
+	display: inline-flex;
+	font-size: 0.85rem;
+	font-weight: 700;
+	line-height: 1.7;
+	padding: 0.15rem 0.65rem;
+}
+
+.fip-status-badge--answered {
+	background: #effaf1;
+	color: #008a20;
+}
+
+.fip-status-badge--rejected {
+	background: #fff1f1;
+	color: #b32d2e;
+}
+
+.fip-status-badge--closed {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.fip-dashboard__empty {
+	color: #50575e;
+	margin: 1rem 0;
+}
+
+@media (max-width: 782px) {
+	.fip-dashboard {
+		display: block;
+	}
+
+	.fip-dashboard__sidebar {
+		max-width: none;
+		margin-bottom: 1rem;
+	}
+
+	.fip-dashboard__hero,
+	.fip-dashboard__section-header {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.fip-dashboard__summary-list {
+		grid-template-columns: 1fr;
+	}
+
+	.fip-button,
+	.fip_button {
+		width: 100%;
+	}
+}
+
+.fip-button--disabled,
+.fip-button--disabled:hover,
+.fip-button--disabled:focus {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.fip-dashboard__disabled-action .fip_notice {
+	margin: 0.75rem 0 0;
+}

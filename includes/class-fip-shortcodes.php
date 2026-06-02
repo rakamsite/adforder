@@ -38,6 +38,7 @@ class FIP_Shortcodes {
 	 */
 	public function __construct() {
 		add_action( 'init', array( $this, 'register_shortcodes' ) );
+		add_action( 'init', array( $this, 'register_menu_locations' ) );
 	}
 
 	/**
@@ -49,6 +50,19 @@ class FIP_Shortcodes {
 		foreach ( array_keys( $this->shortcodes ) as $shortcode ) {
 			add_shortcode( $shortcode, array( $this, 'render_shortcode' ) );
 		}
+	}
+
+	/**
+	 * Registers frontend menu locations used by portal templates.
+	 *
+	 * @return void
+	 */
+	public function register_menu_locations() {
+		register_nav_menus(
+			array(
+				'filter_portal_menu' => __( 'منوی پنل استعلام', 'filter-inquiry-portal' ),
+			)
+		);
 	}
 
 	/**
