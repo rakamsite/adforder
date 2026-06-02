@@ -161,6 +161,14 @@ class FIP_SMSIR_Provider {
 		$formatted = array();
 
 		foreach ( $parameters as $name => $value ) {
+			if ( is_array( $value ) && isset( $value['name'], $value['value'] ) ) {
+				$formatted[] = array(
+					'name'  => sanitize_text_field( (string) $value['name'] ),
+					'value' => sanitize_text_field( (string) $value['value'] ),
+				);
+				continue;
+			}
+
 			$formatted[] = array(
 				'name'  => sanitize_text_field( (string) $name ),
 				'value' => sanitize_text_field( (string) $value ),
