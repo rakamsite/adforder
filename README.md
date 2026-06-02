@@ -122,10 +122,10 @@
 ### Phase 3
 
 - پیاده‌سازی واقعی `FIP_SMSIR_Provider::send_verify()` برای endpoint `POST https://api.sms.ir/v1/send/verify`.
-- ارسال headerهای امن شامل `Content-Type: application/json`، `Accept`، `User-Agent` و `X-API-KEY` بدون نمایش یا ثبت API Key در لاگ‌ها.
+- ارسال headerهای امن شامل `Content-Type: application/json`، `Accept` و `X-API-KEY` بدون نمایش یا ثبت API Key در لاگ‌ها.
 - normalize شماره موبایل برای sms.ir به فرمت رسمی `09123456789` با صفر ابتدایی.
-- تبدیل پارامترهای associative مثل `['CODE' => '12345']` به ساختار موردنیاز sms.ir یعنی `[{ name: CODE, value: 12345 }]` و ارسال بدنه Verify با کلیدهای مستند `Mobile`، `TemplateId` و `Parameters`.
-- parse امن response و بازگرداندن خروجی ساخت‌یافته شامل `success`، `message`، `status_code` و `response` بدون fatal error در پاسخ‌های غیرمنتظره؛ پاسخ‌های عمومی 403/Forbidden هم به پیام عیب‌یابی فارسی و قابل اقدام تبدیل می‌شوند.
+- تبدیل پارامترهای associative مثل `['CODE' => '12345']` به ساختار موردنیاز sms.ir یعنی `[{ name: CODE, value: 12345 }]`.
+- parse امن response و بازگرداندن خروجی ساخت‌یافته شامل `success`، `message`، `status_code` و `response` بدون fatal error در پاسخ‌های غیرمنتظره.
 - ایجاد جدول `{$wpdb->prefix}fip_sms_logs` در فعال‌سازی/به‌روزرسانی افزونه برای ثبت تلاش‌های ارسال پیامک.
 - اضافه شدن `FIP_SMS_Logger` با متدهای `log()`، `get_logs()` و `maybe_create_table()`.
 - اتصال ارسال OTP به sms.ir وقتی پیامک فعال و API Key و Template ID کد ورود تنظیم شده باشند.
@@ -223,8 +223,6 @@
 - **شماره تست پیامک**: شماره‌ای که دکمه «ارسال پیامک تست» به آن کد تست `12345` را می‌فرستد.
 
 شماره موبایل قبل از ارسال به sms.ir به فرمت رسمی `09123456789` تبدیل می‌شود. برای مثال `9123456789`، `+989123456789` و `989123456789` همگی برای provider به `09123456789` normalize می‌شوند. اگر پیامک فعال نباشد یا API Key/Template ID ناقص باشد، ارسال واقعی انجام نمی‌شود و mock mode توسعه فعال می‌ماند.
-
-بدنه ارسال Verify طبق کلاینت‌های فعلی sms.ir با کلیدهای `Mobile`، `TemplateId` و `Parameters` ساخته می‌شود و API Key فقط در header `X-API-KEY` قرار می‌گیرد. اگر sms.ir پاسخ عمومی `403 Forbidden` برگرداند، افزونه به‌جای نمایش متن خام انگلیسی، در notice و لاگ توضیح می‌دهد که باید فعال بودن وب‌سرویس/API Key، محدودیت یا Whitelist آی‌پی و بلاک فایروال/دیتاسنتر بررسی شود و در صورت امکان IPهای احتمالی سرور را هم برای بررسی در پنل sms.ir نمایش می‌دهد.
 
 اگر وردپرس با ثابت `WP_HTTP_BLOCK_EXTERNAL` درخواست‌های خروجی را مسدود کرده باشد، افزونه هنگام ارسال پیامک تلاش می‌کند `api.sms.ir` را به allow-list همان درخواست اضافه کند. اگر ثابت `WP_ACCESSIBLE_HOSTS` از قبل در `wp-config.php` تعریف شده باشد و `api.sms.ir` داخل آن نباشد، باید مقدار آن را اصلاح کنید؛ برای مثال `define( 'WP_ACCESSIBLE_HOSTS', 'api.sms.ir' );`.
 
