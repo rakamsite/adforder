@@ -361,7 +361,49 @@ class FIP_Settings {
 			$this->redirect_test_sms_result( 'success', __( 'پیامک تست با موفقیت ارسال شد.', 'filter-inquiry-portal' ) );
 		}
 
-		$this->redirect_test_sms_result( 'error', __( 'ارسال پیامک تست با خطا مواجه شد. تنظیمات و قالب sms.ir را بررسی کنید.', 'filter-inquiry-portal' ) );
+		$this->redirect_test_sms_result( 'error', $this->format_test_sms_error_message( $result ) );
+	}
+
+	/**
+	 * Builds a detailed but safe admin-facing test SMS failure message.
+	 *
+	 * @param array<string,mixed> $result Provider result.
+	 * @return string
+	 */
+	private function format_test_sms_error_message( $result ) {
+		$message = isset( $result['message'] ) ? trim( sanitize_text_field( (string) $result['message'] ) ) : '';
+
+		if ( '' === $message ) {
+			$message = __( 'ارسال پیامک تست با خطا مواجه شد. تنظیمات و قالب sms.ir را بررسی کنید.', 'filter-inquiry-portal' );
+		}
+
+		$details = array();
+
+		if ( isset( $result['status_code'] ) && absint( $result['status_code'] ) > 0 ) {
+			$details[] = sprintf(
+				/* translators: %d: HTTP status code. */
+				__( 'کد HTTP: %d', 'filter-inquiry-portal' ),
+				absint( $result['status_code'] )
+			);
+		}
+
+		if ( isset( $result['provider_status'] ) && null !== $result['provider_status'] ) {
+			$details[] = sprintf(
+				/* translators: %d: sms.ir provider status code. */
+				__( 'کد وضعیت sms.ir: %d', 'filter-inquiry-portal' ),
+				absint( $result['provider_status'] )
+			);
+		}
+
+		if ( ! empty( $details ) ) {
+			$message .= ' (' . implode( '، ', $details ) . ')';
+		}
+
+		return sprintf(
+			/* translators: %s: Provider or local validation failure message. */
+			__( 'ارسال پیامک تست با خطا مواجه شد: %s', 'filter-inquiry-portal' ),
+			$message
+		);
 	}
 
 	/**
