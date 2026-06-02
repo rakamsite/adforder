@@ -77,13 +77,10 @@ class FIP_SMSIR_Provider {
 			return $this->build_response( false, __( 'شماره موبایل پیامک معتبر نیست.', 'filter-inquiry-portal' ), 0, null );
 		}
 
-		// sms.ir's current v1 client examples use these PascalCase JSON keys.
-		// Keeping the exact documented shape avoids ambiguous provider-side
-		// validation/authentication responses on stricter gateways.
 		$body = array(
-			'Mobile'     => $mobile,
-			'TemplateId' => $template_id,
-			'Parameters' => $this->format_verify_parameters( $parameters ),
+			'mobile'     => $mobile,
+			'templateId' => $template_id,
+			'parameters' => $this->format_verify_parameters( $parameters ),
 		);
 
 		$this->maybe_allow_smsir_host_when_http_is_blocked();
@@ -97,9 +94,8 @@ class FIP_SMSIR_Provider {
 			array(
 				'timeout' => 10,
 				'headers' => array(
-					'Accept'       => 'application/json',
 					'Content-Type' => 'application/json',
-					'User-Agent'   => 'FilterInquiryPortal/' . ( defined( 'FILTER_INQUIRY_PORTAL_VERSION' ) ? FILTER_INQUIRY_PORTAL_VERSION : '1.0.0' ) . '; WordPress/' . get_bloginfo( 'version' ),
+					'Accept'       => 'application/json, text/plain',
 					'X-API-KEY'    => $api_key,
 				),
 				'body'    => wp_json_encode( $body ),
@@ -117,9 +113,8 @@ class FIP_SMSIR_Provider {
 		$parsed_body = $this->parse_response_body( $raw_body );
 		$message     = $this->extract_response_message( $parsed_body, $status_code );
 		$success     = $this->is_successful_response( $status_code, $parsed_body );
-		$debug       = $this->build_debug_response( $parsed_body, $body );
 
-		return $this->build_response( $success, $message, $status_code, $debug );
+		return $this->build_response( $success, $message, $status_code, $parsed_body );
 	}
 
 	/**
@@ -304,10 +299,6 @@ class FIP_SMSIR_Provider {
 	 * @return string
 	 */
 	private function extract_response_message( $response, $status_code ) {
-		if ( 403 === absint( $status_code ) && $this->looks_like_forbidden_response( $response ) ) {
-			return $this->get_forbidden_message();
-		}
-
 		if ( is_array( $response ) ) {
 			foreach ( array( 'message', 'Message', 'error', 'Error' ) as $key ) {
 				if ( isset( $response[ $key ] ) && is_scalar( $response[ $key ] ) ) {
@@ -328,97 +319,6 @@ class FIP_SMSIR_Provider {
 		return $status_code >= self::SUCCESS_HTTP_MIN && $status_code <= self::SUCCESS_HTTP_MAX
 			? __( 'پیامک با موفقیت ارسال شد.', 'filter-inquiry-portal' )
 			: __( 'ارسال پیامک با خطا مواجه شد.', 'filter-inquiry-portal' );
-	}
-
-	/**
-	 * Checks whether the provider returned a generic 403/HTML forbidden page.
-	 *
-	 * @param mixed $response Parsed or raw provider response.
-	 * @return bool
-	 */
-	private function looks_like_forbidden_response( $response ) {
-		if ( is_array( $response ) ) {
-			foreach ( array( 'message', 'Message', 'error', 'Error' ) as $key ) {
-				if ( isset( $response[ $key ] ) && is_scalar( $response[ $key ] ) ) {
-					return $this->looks_like_forbidden_response( (string) $response[ $key ] );
-				}
-			}
-
-			return false;
-		}
-
-		if ( ! is_string( $response ) ) {
-			return false;
-		}
-
-		$response = strtolower( wp_strip_all_tags( $response ) );
-
-		return false !== strpos( $response, 'forbidden' ) || false !== strpos( $response, "don't have permission" );
-	}
-
-	/**
-	 * Returns an actionable admin-safe message for sms.ir 403 responses.
-	 *
-	 * @return string
-	 */
-	private function get_forbidden_message() {
-		$server_ips = $this->get_server_ip_candidates();
-		$ip_hint    = empty( $server_ips ) ? '' : sprintf(
-			/* translators: %s: server IP candidates. */
-			__( ' IP احتمالی سرور برای بررسی در پنل sms.ir: %s', 'filter-inquiry-portal' ),
-			implode( ', ', $server_ips )
-		);
-
-		return sprintf(
-			/* translators: %s: server IP hint. */
-			__( 'sms.ir پاسخ 403 Forbidden برگرداند؛ این معمولاً از محدودیت دسترسی API، غیرفعال بودن وب‌سرویس برای API Key، محدودیت/Whitelist آی‌پی یا بلاک فایروال/دیتاسنتر است. API Key و دسترسی وب‌سرویس را در پنل sms.ir بررسی کنید و اگر محدودیت IP فعال است، IP سرور سایت را مجاز کنید.%s', 'filter-inquiry-portal' ),
-			$ip_hint
-		);
-	}
-
-	/**
-	 * Gets public-ish server IP candidates for admin diagnostics.
-	 *
-	 * @return string[]
-	 */
-	private function get_server_ip_candidates() {
-		$candidates = array();
-
-		foreach ( array( 'SERVER_ADDR', 'LOCAL_ADDR' ) as $key ) {
-			if ( ! empty( $_SERVER[ $key ] ) ) {
-				$value = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
-				if ( filter_var( $value, FILTER_VALIDATE_IP ) ) {
-					$candidates[] = $value;
-				}
-			}
-		}
-
-		$host = wp_parse_url( home_url(), PHP_URL_HOST );
-		if ( $host ) {
-			$resolved = gethostbyname( $host );
-			if ( $resolved && $resolved !== $host && filter_var( $resolved, FILTER_VALIDATE_IP ) ) {
-				$candidates[] = $resolved;
-			}
-		}
-
-		return array_values( array_unique( $candidates ) );
-	}
-
-	/**
-	 * Builds a sanitized debug payload for SMS logs.
-	 *
-	 * @param mixed               $provider_response Parsed or raw provider response.
-	 * @param array<string,mixed> $request_body      Request body sent to sms.ir without secrets.
-	 * @return array<string,mixed>
-	 */
-	private function build_debug_response( $provider_response, array $request_body ) {
-		return array(
-			'provider_response' => $provider_response,
-			'request'           => array(
-				'url'  => self::BASE_URL . self::VERIFY_ENDPOINT,
-				'body' => $request_body,
-			),
-		);
 	}
 
 	/**
