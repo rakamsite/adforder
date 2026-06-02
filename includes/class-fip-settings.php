@@ -90,11 +90,7 @@ class FIP_Settings {
 			'smsir_use_verify_for_notifications'    => 1,
 			'smsir_template_otp'                    => 0,
 			'smsir_template_request_created'        => 0,
-			'smsir_template_status_reviewing'       => 0,
-			'smsir_template_status_need_info'       => 0,
-			'smsir_template_status_answered'        => 0,
-			'smsir_template_status_rejected'        => 0,
-			'smsir_template_status_closed'          => 0,
+			'smsir_template_status_changed'         => 0,
 			'smsir_template_admin_new_request'      => 0,
 			'sms_test_mobile'                       => '',
 		);
@@ -161,6 +157,64 @@ class FIP_Settings {
 		$fields = array_filter( $fields, 'strlen' );
 
 		return array_values( $fields );
+	}
+
+	/**
+	 * Gets active SMS settings only.
+	 *
+	 * Old status-specific template keys may still exist in the saved option,
+	 * but they are intentionally excluded from this active settings view.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public function get_sms_settings() {
+		$settings = $this->get_settings();
+		$defaults = $this->get_defaults();
+		$keys     = array(
+			'sms_enabled',
+			'sms_provider',
+			'smsir_api_key',
+			'smsir_default_line_number',
+			'smsir_use_verify_for_notifications',
+			'smsir_template_otp',
+			'smsir_template_request_created',
+			'smsir_template_status_changed',
+			'smsir_template_admin_new_request',
+			'sms_test_mobile',
+		);
+		$sms_settings = array();
+
+		foreach ( $keys as $key ) {
+			$sms_settings[ $key ] = array_key_exists( $key, $settings ) ? $settings[ $key ] : $defaults[ $key ];
+		}
+
+		return $sms_settings;
+	}
+
+	/**
+	 * Gets an sms.ir template ID by active or backward-compatible template type.
+	 *
+	 * @param string $type Template type.
+	 * @return int
+	 */
+	public function get_smsir_template_id( $type ) {
+		$type = sanitize_key( (string) $type );
+		$map  = array(
+			'otp'               => 'smsir_template_otp',
+			'request_created'   => 'smsir_template_request_created',
+			'status_changed'    => 'smsir_template_status_changed',
+			'admin_new_request' => 'smsir_template_admin_new_request',
+		);
+
+		if ( in_array( $type, array( 'status_reviewing', 'status_need_info', 'status_answered', 'status_rejected', 'status_closed' ), true ) ) {
+			$type = 'status_changed';
+		}
+
+		if ( ! isset( $map[ $type ] ) ) {
+			return 0;
+		}
+
+		return absint( $this->get_option( $map[ $type ], 0 ) );
 	}
 
 	/**
@@ -233,18 +287,32 @@ class FIP_Settings {
 		add_settings_field( 'smsir_use_verify_for_notifications', __( 'استفاده از ارسال قالبی/Verify برای پیامک‌های اطلاع‌رسانی', 'filter-inquiry-portal' ), array( $this, 'render_checkbox_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => 'smsir_use_verify_for_notifications' ) );
 
 		$smsir_template_fields = array(
-			'smsir_template_otp'               => __( 'Template ID کد ورود', 'filter-inquiry-portal' ),
-			'smsir_template_request_created'   => __( 'Template ID ثبت درخواست', 'filter-inquiry-portal' ),
-			'smsir_template_status_reviewing'  => __( 'Template ID وضعیت در حال بررسی', 'filter-inquiry-portal' ),
-			'smsir_template_status_need_info'  => __( 'Template ID وضعیت نیاز به اطلاعات بیشتر', 'filter-inquiry-portal' ),
-			'smsir_template_status_answered'   => __( 'Template ID وضعیت پاسخ داده شد', 'filter-inquiry-portal' ),
-			'smsir_template_status_rejected'   => __( 'Template ID وضعیت رد شد', 'filter-inquiry-portal' ),
-			'smsir_template_status_closed'     => __( 'Template ID وضعیت بسته شد', 'filter-inquiry-portal' ),
-			'smsir_template_admin_new_request' => __( 'Template ID پیامک مدیر برای درخواست جدید', 'filter-inquiry-portal' ),
+			'smsir_template_otp'               => array(
+				'label'       => __( 'Template ID کد ورود', 'filter-inquiry-portal' ),
+				'description' => __( "کد ورود شما: #CODE#
+اعتبار: ۳ دقیقه
+متغیر الزامی: CODE", 'filter-inquiry-portal' ),
+			),
+			'smsir_template_request_created'   => array(
+				'label'       => __( 'Template ID ثبت درخواست', 'filter-inquiry-portal' ),
+				'description' => __( "درخواست شما با شماره #REQUEST# ثبت شد و در انتظار بررسی است.
+متغیر الزامی: REQUEST", 'filter-inquiry-portal' ),
+			),
+			'smsir_template_status_changed'    => array(
+				'label'       => __( 'Template ID تغییر وضعیت درخواست', 'filter-inquiry-portal' ),
+				'description' => __( "وضعیت درخواست #REQUEST# به #STATUS# تغییر کرد.
+لطفاً پنل کاربری را بررسی کنید.
+متغیرهای الزامی: REQUEST و STATUS", 'filter-inquiry-portal' ),
+			),
+			'smsir_template_admin_new_request' => array(
+				'label'       => __( 'Template ID پیامک مدیر برای درخواست جدید، اختیاری', 'filter-inquiry-portal' ),
+				'description' => __( "درخواست جدید #REQUEST# با موبایل #MOBILE# ثبت شد.
+متغیرهای الزامی: REQUEST و MOBILE", 'filter-inquiry-portal' ),
+			),
 		);
 
-		foreach ( $smsir_template_fields as $key => $label ) {
-			add_settings_field( $key, $label, array( $this, 'render_text_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => $key, 'type' => 'number' ) );
+		foreach ( $smsir_template_fields as $key => $field ) {
+			add_settings_field( $key, $field['label'], array( $this, 'render_text_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => $key, 'type' => 'number', 'description' => $field['description'] ) );
 		}
 
 		add_settings_field( 'sms_test_mobile', __( 'شماره تست پیامک', 'filter-inquiry-portal' ), array( $this, 'render_text_field' ), 'fip_settings', 'fip_sms_settings', array( 'key' => 'sms_test_mobile' ) );
@@ -358,9 +426,10 @@ class FIP_Settings {
 	 * @return array<string,mixed>
 	 */
 	public function sanitize_settings( $input ) {
-		$input    = is_array( $input ) ? $input : array();
-		$defaults = $this->get_defaults();
-		$output   = array();
+		$input     = is_array( $input ) ? $input : array();
+		$defaults  = $this->get_defaults();
+		$existing  = get_option( self::OPTION_NAME, array() );
+		$output    = is_array( $existing ) ? $existing : array();
 
 		foreach ( array_keys( $this->page_fields ) as $key ) {
 			$output[ $key ] = isset( $input[ $key ] ) ? absint( $input[ $key ] ) : 0;
@@ -383,17 +452,13 @@ class FIP_Settings {
 		$output['sms_enabled']                        = empty( $input['sms_enabled'] ) ? 0 : 1;
 		$output['sms_provider']                       = 'smsir';
 		$output['smsir_api_key']                      = isset( $input['smsir_api_key'] ) ? sanitize_text_field( wp_unslash( $input['smsir_api_key'] ) ) : '';
-		$output['smsir_default_line_number']          = isset( $input['smsir_default_line_number'] ) ? preg_replace( '/[^0-9]/', '', sanitize_text_field( wp_unslash( $input['smsir_default_line_number'] ) ) ) : '';
+		$output['smsir_default_line_number']          = isset( $input['smsir_default_line_number'] ) ? sanitize_text_field( wp_unslash( $input['smsir_default_line_number'] ) ) : '';
 		$output['smsir_use_verify_for_notifications'] = empty( $input['smsir_use_verify_for_notifications'] ) ? 0 : 1;
 
 		$smsir_template_keys = array(
 			'smsir_template_otp',
 			'smsir_template_request_created',
-			'smsir_template_status_reviewing',
-			'smsir_template_status_need_info',
-			'smsir_template_status_answered',
-			'smsir_template_status_rejected',
-			'smsir_template_status_closed',
+			'smsir_template_status_changed',
 			'smsir_template_admin_new_request',
 		);
 
@@ -480,7 +545,8 @@ class FIP_Settings {
 
 	/** Section intro. */
 	public function render_sms_section_intro() {
-		echo '<p>' . esc_html__( 'برای پیامک ورود، افزونه از متد Verify سامانه sms.ir استفاده می‌کند. قالب OTP باید پارامتر CODE داشته باشد.', 'filter-inquiry-portal' ) . '</p>';
+		echo '<p>' . esc_html__( 'برای ارسال پیامک‌های خدماتی در sms.ir باید ابتدا قالب‌ها را در پنل sms.ir بسازید و Template ID هر قالب را در این بخش وارد کنید. نام متغیرها در قالب باید دقیقاً با نام‌های CODE، REQUEST، STATUS و MOBILE مطابقت داشته باشد.', 'filter-inquiry-portal' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'اگر قبلاً برای هر وضعیت قالب جداگانه وارد کرده‌اید، از این نسخه به بعد فقط قالب عمومی «تغییر وضعیت درخواست» استفاده می‌شود. مقادیر قبلی حذف نمی‌شوند اما دیگر در تنظیمات نمایش داده نمی‌شوند.', 'filter-inquiry-portal' ) . '</p>';
 	}
 
 	/**
@@ -531,7 +597,7 @@ class FIP_Settings {
 		?>
 		<input class="regular-text" type="<?php echo esc_attr( $type ); ?>" id="fip_<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( self::OPTION_NAME . '[' . $key . ']' ); ?>" value="<?php echo esc_attr( $this->get_option( $key, '' ) ); ?>" autocomplete="off" />
 		<?php if ( $description ) : ?>
-			<p class="description"><?php echo esc_html( $description ); ?></p>
+			<p class="description"><?php echo wp_kses_post( nl2br( esc_html( $description ) ) ); ?></p>
 		<?php endif; ?>
 		<?php
 		if ( 'sms_test_mobile' === $key ) {

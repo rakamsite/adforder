@@ -120,8 +120,9 @@ class FIP_Auth {
 		$otp      = $this->get_otp_module();
 
 		if ( $this->should_send_real_otp_sms( $settings ) ) {
-			$provider = new FIP_SMSIR_Provider( $settings );
-			$result   = $provider->send_verify( $mobile, absint( $settings['smsir_template_otp'] ), array( 'CODE' => $code ) );
+			$provider    = new FIP_SMSIR_Provider( $settings );
+			$template_id = isset( $settings['smsir_template_otp'] ) ? absint( $settings['smsir_template_otp'] ) : 0;
+			$result      = $provider->send_verify( $mobile, $template_id, array( 'CODE' => $code ) );
 
 			if ( ! empty( $result['success'] ) ) {
 				if ( $logger && method_exists( $logger, 'log' ) ) {
@@ -164,6 +165,10 @@ class FIP_Auth {
 	 */
 	private function get_sms_settings() {
 		$settings = fip_plugin()->get_module( 'settings' );
+
+		if ( $settings && method_exists( $settings, 'get_sms_settings' ) ) {
+			return $settings->get_sms_settings();
+		}
 
 		if ( $settings && method_exists( $settings, 'get_settings' ) ) {
 			return $settings->get_settings();
